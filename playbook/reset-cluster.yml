@@ -1,0 +1,22 @@
+- hosts: workers
+  become: yes
+  tasks:
+    - name: reset worker
+      shell: "kubeadm reset -f"
+
+    - name: rm /etc/cni/net.d
+      shell: "rm -rf /etc/cni/net.d"
+
+    - name: ipvsadm --clear
+      shell: "ipvsadm --clear"
+
+- hosts: masters
+  become: yes
+  gather_facts: false
+  tasks:
+    - name: reset worker
+      shell: "kubeadm reset -f"
+    - name: rm /etc/cni/net.d
+      shell: "rm -rf /etc/cni/net.d"
+    - name: ipvsadm --clear
+      shell: "ipvsadm --clear"

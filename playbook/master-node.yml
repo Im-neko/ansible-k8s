@@ -1,15 +1,15 @@
-- hosts: master
+- hosts: first-master
   become: yes
   tasks:
     - name: initialize the cluster
-      shell: kubeadm init --pod-network-cidr=10.98.0.0/16 >> cluster_initialized.txt
+      shell: cd /root && kubeadm init --control-plane-endpoint 10.0.0.1:6443 --upload-certs --pod-network-cidr 10.98.0.0/16
       args:
         chdir: $HOME
         creates: cluster_initialized.txt
 
     - name: create .kube directory
       become: yes
-      become_user: ansible
+      become_user: root
       file:
         path: $HOME/.kube
         state: directory
@@ -18,19 +18,41 @@
     - name: copy admin.conf to user's kube config
       copy:
         src: /etc/kubernetes/admin.conf
-        dest: /home/ansible/.kube/config
+        dest: ~/.kube/config
         remote_src: yes
-        owner: ansible
 
     - name: setting iptables
       sysctl:
         name: net.bridge.bridge-nf-call-iptables
         value: 1
 
+    - name: get join command
+      shell: kubeadm token create --print-join-command
+      register: join_command_raw
+
+    - name: set join command
+      set_fact:
+        join_command: "{{ join_command_raw.stdout_lines[0] }} --control-plane"
+
     - name: install Pod network
       become: yes
-      become_user: ansible
-      shell: kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml >> pod_network_setup.txt
+      become_user: root
+      shell: kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml >> pod_network_setup.txt
       args:
         chdir: $HOME
         creates: pod_network_setup.txt
+
+- hosts: other-masters
+  become: yes
+  tasks:
+    - name: initialize the cluster
+      shell: cd /root && bash move-ca.sh
+      args:
+        chdir: $HOME
+        creates: cluster_initialized.txt
+
+    - name: join control planes
+      shell: "{{ hostvars['master'].join_command }} >> node_joined.txt"
+      args:
+        chdir: $HOME
+        creates: node_joined.txt

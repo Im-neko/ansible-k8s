@@ -34,6 +34,11 @@
        name: kubeadm=1.19.2-00
        state: present
 
+   - name: install nfs-common
+     apt:
+       name: nfs-common
+       state: present
+
 - hosts: master
   become: yes
   tasks:
