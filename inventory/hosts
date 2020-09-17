@@ -1,0 +1,9 @@
+[masters]
+master ansible_host=10.0.0.10 ansible_user=neko
+
+[workers]
+worker1 ansible_host=10.0.0.1 ansible_user=neko
+worker2 ansible_host=10.0.0.2 ansible_user=neko
+
+[all:vars]
+ansible_python_interpreter=/usr/bin/python3
